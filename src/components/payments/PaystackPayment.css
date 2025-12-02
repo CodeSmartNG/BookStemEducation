@@ -117,7 +117,7 @@
   margin-top: 0.5rem;
 }
 
-/* Payment Methods */
+/* Payment Methods - UPDATED */
 .payment-methods {
   margin-bottom: 1.5rem;
 }
@@ -139,6 +139,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   background: white;
+  position: relative;
 }
 
 .payment-option:hover {
@@ -146,9 +147,16 @@
   background: #f8f9fa;
 }
 
+.payment-option.selected {
+  border-color: #3498db;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
 .payment-option input[type="radio"] {
   margin-right: 0.75rem;
   transform: scale(1.2);
+  cursor: pointer;
 }
 
 .payment-option label {
@@ -156,18 +164,51 @@
   font-weight: 500;
   color: #495057;
   font-size: 1rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Payment method specific styling */
+.payment-option[data-method="card"] label::before {
+  content: "💳";
+}
+
+.payment-option[data-method="transfer"] label::before {
+  content: "🏦";
+}
+
+.payment-option[data-method="ussd"] label::before {
+  content: "📱";
 }
 
 /* Card Details */
-.card-details {
+.card-details,
+.bank-transfer-details,
+.ussd-payment-details {
   margin-bottom: 1.5rem;
   padding: 1.25rem;
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
+  animation: fadeIn 0.3s ease;
 }
 
-.card-details h4 {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-details h4,
+.bank-transfer-details h4,
+.ussd-payment-details h4 {
   margin: 0 0 1rem 0;
   color: #2c3e50;
   font-size: 1.1rem;
@@ -208,7 +249,56 @@
   gap: 1rem;
 }
 
-/* Payment Button */
+/* Bank Transfer Details */
+.bank-transfer-details .transfer-info {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.bank-transfer-details p {
+  margin-bottom: 8px;
+  color: #4b5563;
+  padding: 5px 0;
+}
+
+.bank-transfer-details .note {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #fef3c7;
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+/* USSD Payment Details */
+.ussd-payment-details .ussd-steps {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.ussd-steps ol {
+  margin-left: 20px;
+  margin-bottom: 0;
+}
+
+.ussd-steps li {
+  margin-bottom: 10px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.ussd-steps strong {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Payment Button - UPDATED for different methods */
 .payment-btn {
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #0055ff, #0044cc);
@@ -242,6 +332,31 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* Different button colors based on payment method */
+.payment-btn.card-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.payment-btn.card-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.payment-btn.transfer-btn {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+}
+
+.payment-btn.transfer-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0da271 0%, #036646 100%);
+}
+
+.payment-btn.ussd-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.payment-btn.ussd-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e0900a 0%, #c46c05 100%);
 }
 
 .payment-note {
@@ -338,6 +453,13 @@
   font-size: 0.9rem;
   margin-top: 1rem;
   font-style: italic;
+  padding: 10px;
+  background-color: #fef3c7;
+  border-radius: 4px;
+  color: #92400e;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .success-actions,
@@ -523,41 +645,43 @@
     margin: 0.5rem;
     max-height: 95vh;
   }
-  
+
   .payment-modal-header {
     padding: 1rem;
   }
-  
+
   .payment-modal-header h2 {
     font-size: 1.3rem;
   }
-  
+
   .payment-modal-content {
     padding: 1rem;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
-  
+
   .success-actions,
   .failed-actions {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .security-features {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
   }
-  
+
   .payment-summary,
-  .card-details {
+  .card-details,
+  .bank-transfer-details,
+  .ussd-payment-details {
     padding: 1rem;
   }
-  
+
   .payment-btn {
     padding: 0.875rem 1rem;
     font-size: 1rem;
@@ -568,28 +692,36 @@
   .payment-modal-overlay {
     padding: 0.5rem;
   }
-  
+
   .payment-modal {
     border-radius: 8px;
   }
-  
+
   .payment-modal-header {
     padding: 0.75rem;
   }
-  
+
   .payment-modal-content {
     padding: 0.75rem;
   }
-  
+
   .summary-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
   }
-  
+
   .summary-item.total {
     flex-direction: row;
     align-items: center;
+  }
+
+  .payment-option {
+    padding: 0.75rem;
+  }
+
+  .payment-option label {
+    font-size: 0.9rem;
   }
 }
 
@@ -615,12 +747,12 @@
     position: static;
     background: white;
   }
-  
+
   .payment-modal {
     box-shadow: none;
     max-height: none;
   }
-  
+
   .close-modal-btn,
   .payment-footer {
     display: none;
