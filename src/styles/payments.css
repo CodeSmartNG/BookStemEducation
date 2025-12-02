@@ -1,0 +1,290 @@
+/* Payment Container Styles */
+.payment-failed-container,
+.lesson-payment,
+.payment-success {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Header */
+.payment-status-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.status-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.status-icon.failed {
+  color: #e74c3c;
+}
+
+.status-description {
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+}
+
+/* Suggestions */
+.suggestions-section {
+  margin: 2rem 0;
+}
+
+.suggestions-section h3 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.suggestion-item:hover {
+  background: #e9ecef;
+}
+
+.suggestion-item input {
+  margin-right: 0.75rem;
+}
+
+.suggestion-item label {
+  cursor: pointer;
+  color: #495057;
+}
+
+/* Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 2rem 0;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #9b59b6;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #8e44ad;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #3498db;
+  color: #3498db;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #3498db;
+  color: white;
+}
+
+.btn-link {
+  background: transparent;
+  color: #7f8c8d;
+  border: none;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: #34495e;
+  text-decoration: underline;
+}
+
+/* Payment Form */
+.payment-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.lesson-info h3 {
+  color: #2c3e50;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #27ae60;
+  margin: 0;
+}
+
+/* Paystack Payment */
+.paystack-payment {
+  margin: 1.5rem 0;
+}
+
+.payment-btn {
+  padding: 1rem 1.5rem;
+  background: #0055ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.payment-btn:hover:not(:disabled) {
+  background: #0044cc;
+  transform: translateY(-1px);
+}
+
+.payment-btn.processing {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.payment-note {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.payment-security {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.security-badge {
+  font-size: 0.8rem;
+  color: #27ae60;
+  background: #d5f4e6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+/* Alerts */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.alert-error {
+  background: #fde8e8;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+/* Loader */
+.loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-spinner {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-small .loader-spinner {
+  width: 16px;
+  height: 16px;
+}
+
+.loader-medium .loader-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+.loader-large .loader-spinner {
+  width: 24px;
+  height: 24px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success State */
+.payment-success {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.payment-success h2 {
+  color: #27ae60;
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .payment-failed-container,
+  .lesson-payment,
+  .payment-success {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .action-buttons {
+    gap: 0.5rem;
+  }
+  
+  .btn {
+    padding: 0.875rem 1rem;
+  }
+}

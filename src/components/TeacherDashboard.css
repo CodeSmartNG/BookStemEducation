@@ -1,0 +1,613 @@
+/* TeacherDashboard.css */
+
+.teacher-dashboard {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+/* Compact Header with Profile */
+.teacher-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  margin-bottom: 30px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.header-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.header-content h3 {
+  font-size: 1.8rem;
+  margin: 0;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header-content p {
+  font-size: 0.95rem;
+  margin: 8px 0 0 0;
+  opacity: 0.9;
+}
+
+/* Compact Teacher Profile */
+.teacher-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  min-width: auto;
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+  font-weight: bold;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.profile-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-info h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-info p {
+  margin: 3px 0 0 0;
+  font-size: 0.8rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+/* Teacher Profile Details Section */
+.profile-details-section {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.profile-details-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f1f3f4;
+}
+
+.profile-details-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+  font-weight: bold;
+  border: 4px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.profile-details-info h3 {
+  margin: 0 0 5px 0;
+  color: #495057;
+  font-size: 1.5rem;
+}
+
+.profile-details-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.profile-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.profile-detail-group {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.profile-detail-group h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-detail-group h4::before {
+  content: '📋';
+  font-size: 1.1rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-width: 120px;
+}
+
+.detail-value {
+  color: #495057;
+  font-weight: 600;
+  text-align: right;
+  flex: 1;
+  margin-left: 15px;
+}
+
+.detail-value.email {
+  color: #667eea;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.detail-value.whatsapp {
+  color: #25d366;
+  font-weight: 700;
+}
+
+.detail-value.specialization {
+  color: #28a745;
+}
+
+/* Contact Info Section */
+.contact-info {
+  background: #e7f3ff;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  color: #0066cc;
+}
+
+.contact-item::before {
+  content: '📧';
+  font-size: 1rem;
+}
+
+.contact-item.whatsapp::before {
+  content: '📱';
+}
+
+/* Compact Stats for Profile */
+.profile-stats-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.profile-stat-compact {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stat-number-compact {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #667eea;
+  display: block;
+}
+
+.stat-label-compact {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 3px;
+  display: block;
+}
+
+/* Tab Navigation */
+.teacher-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.teacher-tabs button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 0.85rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+.teacher-tabs button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.teacher-tabs button.active {
+  background: rgba(255, 255, 255, 0.9);
+  color: #667eea;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Main Content Area */
+.teacher-content {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  min-height: 500px;
+}
+
+/* Overview Tab - Compact */
+.overview-tab {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.stat-subtext {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 5px;
+}
+
+/* Compact Forms */
+.teacher-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Compact Course Cards */
+.courses-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.course-teacher-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.course-teacher-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+.course-pricing-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.course-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  margin-right: 80px;
+}
+
+.course-thumbnail {
+  font-size: 2rem;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 10px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.course-info h4 {
+  margin: 0 0 5px 0;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.course-description {
+  color: #6c757d;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .teacher-dashboard {
+    padding: 15px;
+  }
+  
+  .teacher-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+    padding: 15px;
+  }
+  
+  .header-content {
+    min-width: auto;
+  }
+  
+  .teacher-profile {
+    width: 100%;
+    justify-content: center;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .profile-details-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .profile-details-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .detail-value {
+    text-align: left;
+    margin-left: 0;
+  }
+  
+  .course-header {
+    margin-right: 0;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .course-pricing-badge {
+    position: static;
+    margin-top: 10px;
+    display: inline-block;
+  }
+  
+  .teacher-tabs {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+  
+  .teacher-tabs button {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .teacher-header h3 {
+    font-size: 1.5rem;
+  }
+  
+  .teacher-content {
+    padding: 15px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .courses-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-details-section {
+    padding: 15px;
+  }
+  
+  .profile-detail-group {
+    padding: 15px;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility Classes */
+.compact-view {
+  font-size: 0.9rem;
+}
+
+.text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
