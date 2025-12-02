@@ -255,13 +255,48 @@ export const initializeStorage = () => {
 
 
 
+
 // ==================== LESSON PURCHASE FUNCTION ====================
-// Add this function - it's missing from your current storage.js
-export const purchaseLesson = (studentId, courseKey, lessonId, amount) => {
+export const purchaseLesson = (studentId, courseKey, lessonId, paymentData = {}) => {
   try {
-    const student = getStudentById(studentId);
+    console.log('💰 Processing lesson purchase:', { studentId, courseKey, lessonId, paymentData });
+    
+    // Get the current user (student)
+    const users = getUsers();
+    const student = Object.values(users).find(user => user.id === studentId);
+    
     if (!student) {
+      console.error('❌ Student not found:', studentId);
       throw new Error('Student not found');
+    }
+
+    // Get course and lesson details
+    const courses = getCourses();
+    const course = courses[courseKey];
+    
+    if (!course) {
+      console.error('❌ Course not found:', courseKey);
+      throw new Error('Course not found');
+    }
+    
+    const lesson = course.lessons?.find(l => l.id === lessonId);
+    
+    if (!lesson) {
+      console.error('❌ Lesson not found:', lessonId);
+      throw new Error('Lesson not found');
+    }
+
+    // Check if lesson is free (no need to purchase)
+    if (lesson.isFree) {
+      console.log('📘 Free lesson, no purchase needed');
+      return true;
+    }
+
+    // Check if student already purchased this lesson
+    const purchaseKey = `${courseKey}-${lessonId}`;
+    if (student.purchasedLessons?.includes(purchaseKey)) {
+      console.log('✅ Lesson already purchased');
+      return true;
     }
 
     // Initialize purchased lessons array if it doesn't exist
@@ -269,14 +304,7 @@ export const purchaseLesson = (studentId, courseKey, lessonId, amount) => {
       student.purchasedLessons = [];
     }
 
-    const purchaseKey = `${courseKey}-${lessonId}`;
-    
-    // Check if already purchased
-    if (student.purchasedLessons.includes(purchaseKey)) {
-      throw new Error('Lesson already purchased');
-    }
-
-    // Add to purchased lessons
+    // Add lesson to purchased lessons
     student.purchasedLessons.push(purchaseKey);
 
     // Record purchase transaction
@@ -285,28 +313,101 @@ export const purchaseLesson = (studentId, courseKey, lessonId, amount) => {
     }
 
     const purchaseRecord = {
-      id: `purchase_${Date.now()}`,
+      id: `purchase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       courseKey: courseKey,
+      courseTitle: course.title,
       lessonId: lessonId,
-      amount: amount,
+      lessonTitle: lesson.title,
+      amount: lesson.price || 0,
+      price: lesson.price || 0,
+      paymentMethod: paymentData.paymentMethod || 'paystack',
+      paymentReference: paymentData.paymentReference || `ref_${Date.now()}`,
+      transactionId: paymentData.transactionId || `txn_${Date.now()}`,
+      status: 'completed',
       date: new Date().toISOString(),
-      status: 'completed'
+      teacherId: course.teacherId,
+      teacherName: course.teacherName
     };
 
     student.purchaseHistory.push(purchaseRecord);
 
-    // Update student
-    updateStudent(student);
+    // Update student in users storage
+    users[studentId] = student;
+    saveUsers(users);
 
-    console.log(`✅ Student ${studentId} purchased lesson ${lessonId} in course ${courseKey} for ₦${amount}`);
-    return true;
+    // Also update in students array (for backward compatibility)
+    const students = getStudents();
+    const studentInList = students.find(s => s.id === studentId || s.userId === studentId);
+    if (studentInList) {
+      if (!studentInList.purchasedLessons) {
+        studentInList.purchasedLessons = [];
+      }
+      if (!studentInList.purchasedLessons.includes(purchaseKey)) {
+        studentInList.purchasedLessons.push(purchaseKey);
+      }
+      saveStudents(students);
+    }
+
+    // Process teacher payment (90% to teacher, 10% platform fee)
+    if (course.teacherId && lesson.price && lesson.price > 0) {
+      try {
+        const teacherEarnings = lesson.price * 0.9;
+        addTeacherEarnings(
+          course.teacherId, 
+          teacherEarnings, 
+          `Payment for lesson purchase: ${lesson.title}`,
+          {
+            courseKey: courseKey,
+            lessonId: lessonId,
+            studentId: studentId,
+            studentName: student.name,
+            amount: lesson.price,
+            platformFee: lesson.price * 0.1
+          }
+        );
+        
+        console.log(`💰 Teacher ${course.teacherId} earned ₦${teacherEarnings} from this purchase`);
+      } catch (teacherPaymentError) {
+        console.error('⚠️ Teacher payment processing failed:', teacherPaymentError);
+        // Don't fail the purchase if teacher payment fails
+      }
+    }
+
+    // Save payment transaction
+    const transactions = getPaymentTransactions();
+    const transactionId = `pay_${Date.now()}`;
+    transactions[transactionId] = {
+      id: transactionId,
+      studentId: studentId,
+      studentName: student.name,
+      teacherId: course.teacherId,
+      teacherName: course.teacherName,
+      courseKey: courseKey,
+      courseTitle: course.title,
+      lessonId: lessonId,
+      lessonTitle: lesson.title,
+      amount: lesson.price || 0,
+      status: 'completed',
+      date: new Date().toISOString(),
+      paymentMethod: paymentData.paymentMethod || 'paystack',
+      paymentReference: paymentData.paymentReference,
+      transactionId: paymentData.transactionId,
+      type: 'lesson_purchase'
+    };
+    savePaymentTransactions(transactions);
+
+    console.log(`✅ Student ${studentId} purchased lesson ${lessonId} in course ${courseKey} for ₦${lesson.price || 0}`);
+    return {
+      success: true,
+      purchaseId: purchaseRecord.id,
+      transactionId: transactionId,
+      message: 'Lesson purchased successfully!'
+    };
   } catch (error) {
-    console.error('Error purchasing lesson:', error);
+    console.error('❌ Error purchasing lesson:', error);
     throw error;
   }
 };
-
-
 
 
 
