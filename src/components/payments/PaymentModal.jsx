@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser, processLessonPayment, purchaseLesson } from '../../utils/storage';
-import PaystackPayment from './PaystackPayment';
+import PayButton from '../PayButton'; // ✅ IMPORT YOUR NEW PayButton
 import './PaymentModal.css';
 
 const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('paystack'); // Start directly with Paystack
+  const [step, setStep] = useState('payment'); // Changed from 'paystack'
   const [error, setError] = useState('');
   const [paymentTimeout, setPaymentTimeout] = useState(null);
+  const [paymentReference, setPaymentReference] = useState('');
 
   const currentUser = getCurrentUser();
 
@@ -41,14 +42,14 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
   // Retry payment mechanism
   const handleRetryPayment = () => {
     setError('');
-    setStep('paystack');
+    setStep('payment');
     trackPaymentEvent('payment_retried', 'paystack', safeLesson.price);
   };
 
   const completePayment = async (reference, gateway) => {
     try {
       trackPaymentEvent('payment_completing', gateway, safeLesson.price, 'completing');
-      
+
       // Process payment in storage
       await processLessonPayment(
         currentUser.id,
@@ -62,9 +63,10 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
       await purchaseLesson(currentUser.id, safeCourse.key, safeLesson.id, safeLesson.price || 0);
 
       setStep('success');
+      setPaymentReference(reference);
       trackPaymentEvent('payment_completed', gateway, safeLesson.price, 'success');
-      
-      // Notify parent component
+
+      // Notify parent component after 2 seconds
       setTimeout(() => {
         onSuccess({ 
           reference, 
@@ -82,21 +84,23 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
     }
   };
 
-  // Handle Paystack payment success
-  const handlePaystackSuccess = (paymentResult) => {
-    console.log('🎉 Paystack payment successful:', paymentResult);
-    completePayment(paymentResult.paymentId, 'paystack');
+  // ✅ NEW: Handle PayButton payment success
+  const handlePaymentSuccess = (paymentResult) => {
+    console.log('🎉 Payment successful via PayButton:', paymentResult);
+    completePayment(paymentResult.reference || paymentResult.paymentId, 'paystack');
   };
 
-  // Handle Paystack payment close
-  const handlePaystackClose = () => {
-    console.log('Paystack payment closed by user');
-    setStep('paystack');
+  // ✅ NEW: Handle PayButton payment close
+  const handlePaymentClose = () => {
+    console.log('Payment closed by user');
+    // Don't close modal, just reset state
+    setError('Payment was cancelled');
+    setStep('payment');
   };
 
-  // Handle Paystack payment error
-  const handlePaystackError = (error) => {
-    console.error('Paystack payment error:', error);
+  // ✅ NEW: Handle PayButton error
+  const handlePaymentError = (error) => {
+    console.error('Payment error:', error);
     setError(error.message || 'Payment failed. Please try again.');
     setStep('error');
     trackPaymentEvent('payment_failed', 'paystack', safeLesson.price, 'payment_error');
@@ -104,7 +108,7 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
 
   const renderStep = () => {
     switch (step) {
-      case 'paystack':
+      case 'payment':
         return (
           <div className="payment-methods">
             <div className="payment-summary">
@@ -117,45 +121,80 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
                 <span>Course:</span>
                 <span>{safeCourse.title || 'Untitled Course'}</span>
               </div>
-              <div className="summary-item">
-                <span>Teacher:</span>
-                <span>{safeCourse.teacherName || 'Course Instructor'}</span>
-              </div>
+              {safeCourse.teacherName && (
+                <div className="summary-item">
+                  <span>Teacher:</span>
+                  <span>{safeCourse.teacherName}</span>
+                </div>
+              )}
               <div className="summary-item total">
                 <span>Total Amount:</span>
                 <span>₦{(safeLesson.price || 0).toLocaleString()}</span>
               </div>
             </div>
 
-            {/* Paystack Payment Component - Only Payment Method */}
+            {/* ✅ UPDATED: Using your PayButton component */}
             <div className="paystack-only-section">
               <div className="paystack-header">
-                <h3>💳 Pay with Paystack</h3>
-                <p className="subtitle">Secure card payment powered by Paystack</p>
+                <h3>💳 Secure Payment</h3>
+                <p className="subtitle">Pay with cards, bank transfer, or USSD</p>
               </div>
-              
+
               <div className="paystack-features">
                 <div className="feature-item">
                   <span className="feature-icon">🔒</span>
-                  <span>PCI DSS Compliant</span>
+                  <span>Secure & Encrypted</span>
                 </div>
                 <div className="feature-item">
                   <span className="feature-icon">✅</span>
-                  <span>3D Secure</span>
+                  <span>Instant Access</span>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">🛡️</span>
-                  <span>SSL Encrypted</span>
+                  <span className="feature-icon">🎓</span>
+                  <span>Support Learning</span>
                 </div>
               </div>
 
-              <PaystackPayment 
-                lesson={safeLesson}
-                student={currentUser}
-                onSuccess={handlePaystackSuccess}
-                onClose={handlePaystackClose}
-                onError={handlePaystackError}
-              />
+              {/* ✅ PAYBUTTON COMPONENT */}
+              <div className="paybutton-container">
+                <PayButton
+                  email={currentUser?.email || ''}
+                  amount={safeLesson.price || 0}
+                  metadata={{
+                    course_id: safeCourse.key,
+                    course_name: safeCourse.title,
+                    lesson_id: safeLesson.id,
+                    lesson_title: safeLesson.title,
+                    teacher_id: safeCourse.teacherId,
+                    teacher_name: safeCourse.teacherName,
+                    student_id: currentUser?.id,
+                    student_name: currentUser?.name,
+                    platform: 'Edustem Academy'
+                  }}
+                  onSuccess={handlePaymentSuccess}
+                  onClose={handlePaymentClose}
+                  buttonText={`Pay ₦${(safeLesson.price || 0).toLocaleString()}`}
+                  className="modal-pay-button"
+                />
+              </div>
+
+              {/* Alternative payment option */}
+              <div className="alternative-payment">
+                <p>Prefer other payment methods?</p>
+                <div className="alt-options">
+                  <a 
+                    href={`https://wa.me/234${safeCourse.teacherPhone || '1234567890'}?text=I want to pay for "${safeLesson.title}" (₦${safeLesson.price})`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="whatsapp-alt-btn"
+                  >
+                    💬 WhatsApp Payment
+                  </a>
+                  <button className="bank-transfer-btn" onClick={() => alert('Bank transfer details will be shown')}>
+                    🏦 Bank Transfer
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -179,14 +218,24 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
                 <span>Amount:</span>
                 <strong>₦{(safeLesson.price || 0).toLocaleString()}</strong>
               </div>
-              <div className="detail-item">
-                <span>Payment Method:</span>
-                <strong>Paystack</strong>
-              </div>
+              {paymentReference && (
+                <div className="detail-item">
+                  <span>Reference:</span>
+                  <strong className="ref-code">{paymentReference.substring(0, 12)}...</strong>
+                </div>
+              )}
             </div>
-            <button className="close-btn" onClick={onClose}>
-              Start Learning Now
-            </button>
+            <div className="success-actions">
+              <button className="start-learning-btn" onClick={onClose}>
+                Start Learning Now
+              </button>
+              <button className="download-receipt-btn" onClick={() => {
+                alert('Receipt would be generated here');
+                // Generate receipt logic
+              }}>
+                📄 Download Receipt
+              </button>
+            </div>
           </div>
         );
 
@@ -202,12 +251,12 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
                 <li>Check your internet connection</li>
                 <li>Ensure you have sufficient funds</li>
                 <li>Verify your card details are correct</li>
-                <li>Contact support if issue persists</li>
+                <li>Try a different payment method</li>
               </ul>
             </div>
             <div className="action-buttons">
               <button className="retry-btn" onClick={handleRetryPayment}>
-                Try Again with Paystack
+                Try Again
               </button>
               <button className="close-btn" onClick={onClose}>
                 Cancel Payment
@@ -230,23 +279,25 @@ const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
     <div className="payment-modal-overlay">
       <div className="payment-modal">
         <div className="modal-header">
-          <h2>🔒 Unlock Premium Lesson</h2>
-          {step === 'paystack' && (
+          <h2>🔓 Unlock Premium Content</h2>
+          {step === 'payment' && (
             <button className="close-button" onClick={onClose}>×</button>
           )}
         </div>
-        
+
         <div className="modal-body">
           {renderStep()}
         </div>
 
         <div className="modal-footer">
           <div className="security-notice">
-            <div className="paystack-badge">
-              <span>Powered by Paystack</span>
+            <div className="payment-providers">
+              <span className="provider-badge paystack-badge">Powered by Paystack</span>
+              <span className="provider-badge secure-badge">🔒 SSL Encrypted</span>
+              <span className="provider-badge pci-badge">PCI DSS Compliant</span>
             </div>
-            <p>
-              🔒 All payments are secure and encrypted. Your financial information is protected.
+            <p className="security-text">
+              Your payment is secure. We don't store your card details. All transactions are encrypted.
             </p>
           </div>
         </div>
