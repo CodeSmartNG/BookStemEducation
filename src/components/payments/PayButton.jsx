@@ -2,7 +2,7 @@ const PayButton = ({ email, amount, metadata, buttonText, onSuccess }) => {
   const handlePayment = () => {
     // Load Paystack inline script
     const script = document.createElement('script');
-    script.src = "https://js.paystack.co/v1/inline.js";
+    script.src = "  https://paystack.shop/pay/8wikapcy3c ";
     script.async = true;
 
     script.onload = () => {
