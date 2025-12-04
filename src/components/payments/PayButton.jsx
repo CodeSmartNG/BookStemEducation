@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
 
-const PayButton = ({ email, amount, metadata = {}, buttonText, onSuccess, onClose, disabled = false }) => {
+const PayButton = ({ email, amount, buttonText = 'Pay Now' }) => {
   const [loading, setLoading] = useState(false);
-  const [keyError, setKeyError] = useState('');
+  const [error, setError] = useState('');
 
-  // Validate the Paystack key
-  const validatePaystackKey = () => {
-    // Get key from environment variable
+  // Get and validate the key
+  const getValidatedKey = () => {
+    // Get from environment
     const publicKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
     
-    // Check if using MY key
-    const MY_KEY = 'pk_live_d8d97b1f913f518b06d50f9cc21d84bee176a49d';
-    if (publicKey === MY_KEY) {
-      setKeyError('❌ You are using MY Paystack key! Get YOUR OWN from dashboard.paystack.com');
+    // MY KEY - DELETE THIS!
+    const MY_WRONG_KEY = 'pk_live_d8d97b1f913f518b06d50f9cc21d84bee176a49d';
+    
+    // Check if you're using MY key
+    if (publicKey === MY_WRONG_KEY) {
+      setError('❌ STOP! You are using MY Paystack key!\n\nGet YOUR OWN key at: dashboard.paystack.com');
+      alert('CRITICAL: You are using someone else\'s Paystack key!\n\nGo to: dashboard.paystack.com\nLogin → Settings → API & Webhooks\nCopy YOUR Live Public Key\nUpdate your .env file');
       return null;
     }
     
     // Check for placeholder
-    if (!publicKey || publicKey.includes('YOUR_') || publicKey.includes('your_')) {
-      setKeyError('❌ Invalid Paystack key. Add YOUR key to .env file');
+    if (!publicKey || publicKey.includes('YOUR') || publicKey.includes('your_')) {
+      setError('❌ Paystack key not configured!\n\nAdd REACT_APP_PAYSTACK_PUBLIC_KEY to your .env file');
       return null;
     }
     
     // Check format
-    if (!publicKey.startsWith('pk_live_') && !publicKey.startsWith('pk_test_')) {
-      setKeyError('❌ Invalid key format. Must start with "pk_live_" or "pk_test_"');
+    if (!publicKey.startsWith('pk_live_')) {
+      setError('❌ Invalid key format!\n\nMust start with "pk_live_"');
       return null;
     }
     
@@ -32,28 +35,24 @@ const PayButton = ({ email, amount, metadata = {}, buttonText, onSuccess, onClos
   };
 
   const handlePayment = () => {
-    if (loading || disabled) return;
+    if (loading) return;
     
     // Validate key first
-    const publicKey = validatePaystackKey();
+    const publicKey = getValidatedKey();
     if (!publicKey) return;
     
     // Get email
     let customerEmail = email;
     if (!customerEmail) {
-      customerEmail = prompt('📧 Enter your email for payment receipt:');
-      if (!customerEmail || !customerEmail.includes('@')) {
-        alert('Valid email is required');
-        return;
-      }
+      customerEmail = prompt('📧 Student email for receipt:');
+      if (!customerEmail) return;
     }
     
     setLoading(true);
     
-    // Load Paystack V2
+    // Load Paystack
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v2/inline.js';
-    script.async = true;
     
     script.onload = () => {
       try {
@@ -62,29 +61,28 @@ const PayButton = ({ email, amount, metadata = {}, buttonText, onSuccess, onClos
         paystack.newTransaction({
           key: publicKey,
           email: customerEmail,
-          amount: amount * 100,
-          ref: `BOOKSTEM_${Date.now()}`,
+          amount: amount * 100, // ₦1500 → 150000 kobo
+          ref: `PYTHON_${Date.now()}`,
           currency: 'NGN',
-          metadata: metadata,
-          onSuccess: (transaction) => {
-            console.log('✅ Payment successful:', transaction);
+          metadata: {
+            course: 'Python Programming',
+            lesson: 'Python Basics',
+            amount: amount
+          },
+          onSuccess: (response) => {
+            console.log('✅ Python lesson purchased!', response);
             setLoading(false);
-            
-            // Call success handler
-            if (onSuccess) {
-              onSuccess(transaction);
-            }
+            alert(`✅ Python Basics purchased!\n\nReference: ${response.reference}\nEmail: ${customerEmail}\n\nYou can now access the lesson!`);
           },
           onCancel: () => {
             console.log('Payment cancelled');
             setLoading(false);
-            if (onClose) onClose();
           }
         });
       } catch (error) {
         console.error('Payment error:', error);
         setLoading(false);
-        alert(`Payment Error: ${error.message || 'Please check your Paystack key'}`);
+        alert('Payment failed. Please check your Paystack key.');
       }
     };
     
@@ -96,26 +94,32 @@ const PayButton = ({ email, amount, metadata = {}, buttonText, onSuccess, onClos
     document.head.appendChild(script);
   };
 
-  // Debug function to check current key
-  const debugKey = () => {
-    const key = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
-    const firstPart = key ? key.substring(0, 20) + '...' : 'undefined';
-    alert(`Current Paystack Key:\n${firstPart}\n\nFrom .env file: ${key ? '✅ Loaded' : '❌ Not found'}`);
-  };
-
   return (
-    <div style={{ margin: '10px 0' }}>
-      {keyError && (
+    <div style={{ margin: '15px 0' }}>
+      <div style={{
+        background: '#d4edda',
+        border: '1px solid #c3e6cb',
+        color: '#155724',
+        padding: '10px',
+        borderRadius: '6px',
+        marginBottom: '10px',
+        fontSize: '14px'
+      }}>
+        <strong>🎯 Course:</strong> Python Basics
+        <div><strong>💰 Price:</strong> ₦{amount || '1,500'}</div>
+        <div><strong>📧 Email:</strong> {email || 'Will be requested'}</div>
+      </div>
+      
+      {error && (
         <div style={{
           background: '#f8d7da',
           color: '#721c24',
           padding: '10px',
           borderRadius: '6px',
           marginBottom: '10px',
-          border: '1px solid #f5c6cb',
-          fontSize: '14px'
+          border: '1px solid #f5c6cb'
         }}>
-          <strong>⚠️ Configuration Error:</strong> {keyError}
+          <strong>⚠️ {error}</strong>
           <div style={{ marginTop: '8px' }}>
             <a 
               href="https://dashboard.paystack.com/#/settings/developer"
@@ -124,78 +128,50 @@ const PayButton = ({ email, amount, metadata = {}, buttonText, onSuccess, onClos
               style={{
                 background: '#dc3545',
                 color: 'white',
-                padding: '6px 12px',
+                padding: '8px 16px',
                 borderRadius: '4px',
                 textDecoration: 'none',
-                fontSize: '13px',
-                marginRight: '8px'
+                display: 'inline-block'
               }}
             >
-              Get Your Keys
+              👉 Get Your Key Now
             </a>
-            <button 
-              onClick={debugKey}
-              style={{
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: '4px',
-                fontSize: '13px'
-              }}
-            >
-              Debug Key
-            </button>
           </div>
         </div>
       )}
       
       <button 
         onClick={handlePayment}
-        disabled={loading || disabled || !!keyError}
+        disabled={loading || !!error}
         style={{
-          background: keyError ? '#dc3545' : 
+          background: error ? '#dc3545' : 
                      loading ? '#6c757d' : 
-                     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                     '#28a745',
           color: 'white',
           border: 'none',
-          padding: '14px 28px',
+          padding: '15px 30px',
           fontSize: '16px',
-          fontWeight: '600',
+          fontWeight: 'bold',
           borderRadius: '8px',
-          cursor: (loading || disabled || !!keyError) ? 'not-allowed' : 'pointer',
+          cursor: (loading || !!error) ? 'not-allowed' : 'pointer',
           width: '100%',
           transition: 'all 0.3s'
         }}
       >
-        {loading ? (
-          <>
-            Processing...
-            <span style={{
-              display: 'inline-block',
-              width: '16px',
-              height: '16px',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderTopColor: 'white',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              marginLeft: '8px'
-            }}></span>
-          </>
-        ) : keyError ? (
-          'Fix Configuration First'
-        ) : (
-          buttonText || `Pay ₦${amount}`
-        )}
+        {loading ? 'Processing Payment...' : 
+         error ? 'Fix Configuration First' : 
+         buttonText || `Enroll in Python Basics - ₦${amount}`}
       </button>
       
-      <style>
-        {`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+      <div style={{
+        fontSize: '12px',
+        color: '#666',
+        marginTop: '8px',
+        textAlign: 'center'
+      }}>
+        <div>💳 <strong>Test Card:</strong> 4084 0840 8408 4081</div>
+        <div>📅 <strong>Expiry:</strong> Any future date | <strong>CVV:</strong> 408</div>
+      </div>
     </div>
   );
 };
