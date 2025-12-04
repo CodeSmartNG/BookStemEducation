@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const PayButton = ({ 
   email, 
@@ -11,30 +11,57 @@ const PayButton = ({
   currency = "NGN"
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [paystackLoaded, setPaystackLoaded] = useState(false);
 
-  // Get public key with proper validation
+  // Load Paystack script once when component mounts
+  useEffect(() => {
+    if (window.PaystackPop) {
+      setPaystackLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = "https://js.paystack.co/v2/inline.js";
+    script.async = true;
+    script.id = 'paystack-script';
+
+    script.onload = () => {
+      console.log('✅ Paystack V2 script loaded');
+      setPaystackLoaded(true);
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Paystack script');
+      setPaystackLoaded(false);
+    };
+
+    // Remove existing script if any
+    const existingScript = document.getElementById('paystack-script');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    document.head.appendChild(script);
+
+    // Cleanup on unmount
+    return () => {
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+
   const getPublicKey = () => {
-    // Check for Vite environment variable
+    // Try multiple ways to get the key
     const viteKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-    
-    // Check for Create React App environment variable
     const craKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
     
-    // Use either available key
     const publicKey = viteKey || craKey;
     
-    // If no key found, use a test key for development
     if (!publicKey) {
-      console.warn('⚠️ No Paystack public key found in environment variables.');
-      console.warn('Using test key for development. Add VITE_PAYSTACK_PUBLIC_KEY to your .env file.');
-      
-      // You can replace this with your actual test key
-      return 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
-    }
-    
-    // If using placeholder/demo key, show warning but allow it
-    if (publicKey.includes('your_') || publicKey.includes('placeholder')) {
-      console.warn('⚠️ Using placeholder/demo key. Replace with your real Paystack key.');
+      console.warn('No Paystack key found. Using test mode.');
+      // Use a real test key format (replace with yours)
+      return 'pk_test_e2c7e4e4d8e3c6c5f4a4b3a2c1d0e9f8a7b6c5d4';
     }
     
     return publicKey;
@@ -42,13 +69,25 @@ const PayButton = ({
 
   const handlePayment = () => {
     // Prevent multiple clicks
-    if (disabled || isLoading) return;
-
-    // Get validated email
-    const customerEmail = email || prompt('Enter your email for payment receipt:');
-    if (!customerEmail || !customerEmail.includes('@')) {
-      alert('Please enter a valid email address');
+    if (disabled || isLoading) {
       return;
+    }
+
+    // Check if Paystack is loaded
+    if (!paystackLoaded || !window.PaystackPop) {
+      alert('Payment system is loading, please try again in a moment.');
+      console.error('Paystack not loaded yet');
+      return;
+    }
+
+    // Get email from props or prompt
+    let customerEmail = email;
+    if (!customerEmail) {
+      customerEmail = prompt('Enter your email for payment receipt:');
+      if (!customerEmail || !customerEmail.includes('@')) {
+        alert('Valid email is required for payment');
+        return;
+      }
     }
 
     // Validate amount
@@ -57,129 +96,113 @@ const PayButton = ({
       return;
     }
 
-    // Get the public key
     const publicKey = getPublicKey();
     
+    // Show loading
     setIsLoading(true);
 
-    // Load Paystack V2 inline script
-    const script = document.createElement('script');
-    script.src = "https://js.paystack.co/v2/inline.js";
-    script.async = true;
-
-    script.onload = () => {
-      try {
-        // Generate unique reference
-        const reference = `EDUSTEM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Initialize Paystack V2
-        const paystack = new window.PaystackPop();
-        
-        // Configure payment
-        paystack.newTransaction({
-          key: publicKey,
-          email: customerEmail,
-          amount: amount * 100, // Convert Naira to kobo
-          ref: reference,
-          currency: currency,
-          metadata: {
-            ...metadata,
-            custom_fields: [
-              {
-                display_name: "Platform",
-                variable_name: "platform",
-                value: "Edustem Academy"
-              },
-              {
-                display_name: "Student Email",
-                variable_name: "student_email",
-                value: customerEmail
-              }
-            ]
-          },
-          channels: ['card', 'bank', 'ussd', 'mobile_money'],
-          
-          // Payment success callback
-          onSuccess: (transaction) => {
-            console.log('✅ Payment successful (V2):', transaction);
-            setIsLoading(false);
-            
-            // Store payment info in localStorage
-            const paymentData = {
-              ...transaction,
-              email: customerEmail,
-              amount: amount,
-              metadata: metadata,
-              timestamp: new Date().toISOString(),
-              status: 'completed'
-            };
-            
-            localStorage.setItem(`payment_${transaction.reference}`, JSON.stringify(paymentData));
-            
-            // Show success message
-            alert(`✅ Payment Successful!\nReference: ${transaction.reference}\nAmount: ₦${amount}`);
-            
-            // Call parent's success callback if provided
-            if (onSuccess) {
-              onSuccess(transaction);
+    try {
+      // IMPORTANT: Use the CORRECT constructor name
+      // For V2, it should be: new PaystackPop()
+      const paystack = new window.PaystackPop();
+      
+      // Generate reference
+      const reference = `EDUSTEM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Configure payment
+      paystack.newTransaction({
+        key: publicKey,
+        email: customerEmail,
+        amount: amount * 100, // Convert to kobo
+        ref: reference,
+        currency: currency,
+        metadata: {
+          ...metadata,
+          custom_fields: [
+            {
+              display_name: "Platform",
+              variable_name: "platform",
+              value: "Edustem Academy"
+            },
+            {
+              display_name: "Student",
+              variable_name: "student_email",
+              value: customerEmail
             }
-          },
+          ]
+        },
+        channels: ['card', 'bank', 'ussd'],
+        
+        // Payment success
+        onSuccess: (transaction) => {
+          console.log('✅ Payment successful:', transaction);
+          setIsLoading(false);
           
-          // Payment cancelled callback
-          onCancel: () => {
-            console.log('Payment cancelled by user');
-            setIsLoading(false);
-            
-            // Call parent's close callback if provided
-            if (onClose) {
-              onClose();
-            }
+          // Store payment data
+          localStorage.setItem(`payment_${reference}`, JSON.stringify({
+            ...transaction,
+            email: customerEmail,
+            amount: amount,
+            timestamp: new Date().toISOString()
+          }));
+          
+          // Show success message
+          alert(`Payment successful!\nReference: ${transaction.reference}`);
+          
+          // Call success callback
+          if (onSuccess) {
+            onSuccess(transaction);
           }
-        });
-      } catch (error) {
-        console.error('❌ Error setting up Paystack payment:', error);
-        setIsLoading(false);
-        alert(`Payment Error: ${error.message || 'Failed to initialize payment'}`);
-      }
-    };
-
-    // Handle script load errors
-    script.onerror = () => {
-      console.error('❌ Failed to load Paystack script');
+        },
+        
+        // Payment cancelled
+        onCancel: () => {
+          console.log('Payment cancelled by user');
+          setIsLoading(false);
+          
+          if (onClose) {
+            onClose();
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Payment initialization error:', error);
       setIsLoading(false);
-      alert('Failed to load payment gateway. Please check your internet connection.');
-    };
-
-    // Add script to page if not already loaded
-    if (!window.PaystackPop) {
-      document.head.appendChild(script);
-    } else {
-      // Script already loaded, trigger payment directly
-      script.onload();
+      
+      // Show specific error messages
+      if (error.message.includes('not a constructor')) {
+        alert('Payment system error. Please refresh the page and try again.');
+      } else {
+        alert(`Payment Error: ${error.message || 'Please try again'}`);
+      }
     }
   };
 
   return (
     <button 
-      onClick={handlePayment} 
-      className={`payment-btn ${isLoading ? 'loading' : ''} ${disabled ? 'disabled' : ''}`}
-      disabled={disabled || isLoading}
+      onClick={handlePayment}
+      disabled={disabled || isLoading || !paystackLoaded}
       style={{
-        background: isLoading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: isLoading ? '#6c757d' : 
+                   !paystackLoaded ? '#ccc' : 
+                   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
         border: 'none',
         padding: '12px 24px',
         fontSize: '16px',
         fontWeight: '600',
         borderRadius: '8px',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
+        cursor: (disabled || isLoading || !paystackLoaded) ? 'not-allowed' : 'pointer',
+        opacity: (disabled || !paystackLoaded) ? 0.7 : 1,
         transition: 'all 0.3s ease',
-        position: 'relative',
-        minWidth: '140px'
+        minWidth: '140px',
+        position: 'relative'
       }}
     >
-      {isLoading ? (
+      {!paystackLoaded ? (
+        'Loading Payment...'
+      ) : isLoading ? (
         <>
           Processing...
           <span style={{
@@ -202,16 +225,10 @@ const PayButton = ({
           @keyframes spin {
             to { transform: rotate(360deg); }
           }
-          
-          .payment-btn:hover:not(.disabled):not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-          }
         `}
       </style>
     </button>
   );
 };
 
-// Default export
 export default PayButton;
