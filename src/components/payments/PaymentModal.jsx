@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser, processLessonPayment, purchaseLesson } from '../../utils/storage';
-import PayButton from '../PayButton'; // ✅ IMPORT YOUR NEW PayButton
+import PayButton from './PayButton'; // ✅ IMPORT YOUR NEW PayButton
 import './PaymentModal.css';
 
 const PaymentModal = ({ lesson, course, onClose, onSuccess }) => {
