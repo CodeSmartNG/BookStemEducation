@@ -1,129 +1,233 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const PayButton = ({ email, amount, buttonText = 'Pay Now' }) => {
-  const [loading, setLoading] = useState(false);
+const PayButton = ({ 
+  email, 
+  amount, 
+  metadata = {}, 
+  buttonText, 
+  onSuccess,
+  onClose,
+  disabled = false,
+  currency = "NGN"
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [paystackLoaded, setPaystackLoaded] = useState(false);
+
+  // Load Paystack script once when component mounts
+  useEffect(() => {
+    if (window.PaystackPop) {
+      setPaystackLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = "https://js.paystack.co/v2/inline.js";
+    script.async = true;
+    script.id = 'paystack-script';
+
+    script.onload = () => {
+      console.log('✅ Paystack V2 script loaded');
+      setPaystackLoaded(true);
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Paystack script');
+      setPaystackLoaded(false);
+    };
+
+    // Remove existing script if any
+    const existingScript = document.getElementById('paystack-script');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    document.head.appendChild(script);
+
+    // Cleanup on unmount
+    return () => {
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+
+  const getPublicKey = () => {
+    // Try multiple ways to get the key
+    const viteKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    const craKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
+    
+    const publicKey = viteKey || craKey;
+    
+    if (!publicKey) {
+      console.warn('No Paystack key found. Using test mode.');
+      // Use a real test key format (replace with yours)
+      return 'pk_test_e2c7e4e4d8e3c6c5f4a4b3a2c1d0e9f8a7b6c5d4';
+    }
+    
+    return publicKey;
+  };
 
   const handlePayment = () => {
-    if (loading) return;
-    
-    // ⚠️ IMPORTANT: Use YOUR key here
-    const YOUR_PUBLIC_KEY = 'pk_live_YOUR_REAL_KEY_HERE'; // ⚠️ REPLACE THIS
-    
-    // Or use from environment variable
-    // const YOUR_PUBLIC_KEY = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
-    
-    // Check if you're still using MY key
-    if (YOUR_PUBLIC_KEY.includes('d8d97b1f913f518b06d50f9cc21d84bee176a49d')) {
-      alert('❌ STOP! You are using MY Paystack key!\n\nGo to: dashboard.paystack.com\nGet YOUR OWN keys from Settings → API & Webhooks\n\nThen update your .env file!');
+    // Prevent multiple clicks
+    if (disabled || isLoading) {
       return;
     }
-    
-    // Check if using placeholder
-    if (YOUR_PUBLIC_KEY.includes('YOUR_') || !YOUR_PUBLIC_KEY.startsWith('pk_live_')) {
-      alert('❌ Invalid Paystack key!\n\n1. Go to dashboard.paystack.com\n2. Login to YOUR account\n3. Go to Settings → API & Webhooks\n4. Copy YOUR Live Public Key\n5. Paste it in your .env file');
+
+    // Check if Paystack is loaded
+    if (!paystackLoaded || !window.PaystackPop) {
+      alert('Payment system is loading, please try again in a moment.');
+      console.error('Paystack not loaded yet');
       return;
     }
-    
-    setLoading(true);
-    
-    // Get email
+
+    // Get email from props or prompt
     let customerEmail = email;
     if (!customerEmail) {
-      customerEmail = prompt('Enter email for payment receipt:');
-      if (!customerEmail) {
-        setLoading(false);
+      customerEmail = prompt('Enter your email for payment receipt:');
+      if (!customerEmail || !customerEmail.includes('@')) {
+        alert('Valid email is required for payment');
         return;
       }
     }
+
+    // Validate amount
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    const publicKey = getPublicKey();
     
-    // Load Paystack
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v2/inline.js';
-    
-    script.onload = () => {
-      try {
-        const paystack = new window.PaystackPop();
+    // Show loading
+    setIsLoading(true);
+
+    try {
+      // IMPORTANT: Use the CORRECT constructor name
+      // For V2, it should be: new PaystackPop()
+      const paystack = new window.PaystackPop();
+      
+      // Generate reference
+      const reference = `EDUSTEM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Configure payment
+      paystack.newTransaction({
+        key: publicKey,
+        email: customerEmail,
+        amount: amount * 100, // Convert to kobo
+        ref: reference,
+        currency: currency,
+        metadata: {
+          ...metadata,
+          custom_fields: [
+            {
+              display_name: "Platform",
+              variable_name: "platform",
+              value: "Edustem Academy"
+            },
+            {
+              display_name: "Student",
+              variable_name: "student_email",
+              value: customerEmail
+            }
+          ]
+        },
+        channels: ['card', 'bank', 'ussd'],
         
-        paystack.newTransaction({
-          key: YOUR_PUBLIC_KEY, // This should be YOUR key
-          email: customerEmail,
-          amount: amount * 100,
-          ref: `BOOKSTEM_${Date.now()}`,
-          currency: 'NGN',
-          onSuccess: (response) => {
-            console.log('✅ Payment successful!');
-            setLoading(false);
-            alert(`✅ Payment successful!\nReference: ${response.reference}\nAmount: ₦${amount}`);
-          },
-          onCancel: () => {
-            console.log('Payment cancelled');
-            setLoading(false);
+        // Payment success
+        onSuccess: (transaction) => {
+          console.log('✅ Payment successful:', transaction);
+          setIsLoading(false);
+          
+          // Store payment data
+          localStorage.setItem(`payment_${reference}`, JSON.stringify({
+            ...transaction,
+            email: customerEmail,
+            amount: amount,
+            timestamp: new Date().toISOString()
+          }));
+          
+          // Show success message
+          alert(`Payment successful!\nReference: ${transaction.reference}`);
+          
+          // Call success callback
+          if (onSuccess) {
+            onSuccess(transaction);
           }
-        });
-      } catch (error) {
-        console.error('Payment error:', error);
-        setLoading(false);
-        alert('Payment failed: ' + error.message);
+        },
+        
+        // Payment cancelled
+        onCancel: () => {
+          console.log('Payment cancelled by user');
+          setIsLoading(false);
+          
+          if (onClose) {
+            onClose();
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      setIsLoading(false);
+      
+      // Show specific error messages
+      if (error.message.includes('not a constructor')) {
+        alert('Payment system error. Please refresh the page and try again.');
+      } else {
+        alert(`Payment Error: ${error.message || 'Please try again'}`);
       }
-    };
-    
-    script.onerror = () => {
-      setLoading(false);
-      alert('Failed to load payment system');
-    };
-    
-    document.head.appendChild(script);
+    }
   };
 
   return (
-    <div style={{ padding: '10px' }}>
-      <div style={{
-        background: '#d1ecf1',
-        border: '1px solid #bee5eb',
-        color: '#0c5460',
-        padding: '10px',
-        borderRadius: '5px',
-        marginBottom: '15px',
-        fontSize: '14px'
-      }}>
-        <strong>⚠️ IMPORTANT:</strong> Make sure you're using <strong>YOUR OWN</strong> Paystack keys!
-        <div style={{ marginTop: '5px' }}>
-          <a 
-            href="https://dashboard.paystack.com/#/settings/developer" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{ color: '#007bff', textDecoration: 'none' }}
-          >
-            🔗 Click here to get YOUR keys from Paystack
-          </a>
-        </div>
-      </div>
+    <button 
+      onClick={handlePayment}
+      disabled={disabled || isLoading || !paystackLoaded}
+      style={{
+        background: isLoading ? '#6c757d' : 
+                   !paystackLoaded ? '#ccc' : 
+                   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        border: 'none',
+        padding: '12px 24px',
+        fontSize: '16px',
+        fontWeight: '600',
+        borderRadius: '8px',
+        cursor: (disabled || isLoading || !paystackLoaded) ? 'not-allowed' : 'pointer',
+        opacity: (disabled || !paystackLoaded) ? 0.7 : 1,
+        transition: 'all 0.3s ease',
+        minWidth: '140px',
+        position: 'relative'
+      }}
+    >
+      {!paystackLoaded ? (
+        'Loading Payment...'
+      ) : isLoading ? (
+        <>
+          Processing...
+          <span style={{
+            display: 'inline-block',
+            width: '16px',
+            height: '16px',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderTopColor: 'white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginLeft: '8px'
+          }}></span>
+        </>
+      ) : (
+        buttonText || `Pay ₦${amount.toLocaleString()}`
+      )}
       
-      <button 
-        onClick={handlePayment}
-        disabled={loading}
-        style={{
-          background: loading ? '#6c757d' : '#28a745',
-          color: 'white',
-          border: 'none',
-          padding: '15px 30px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          borderRadius: '8px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          width: '100%',
-          transition: 'all 0.3s'
-        }}
-        onMouseOver={e => {
-          if (!loading) e.target.style.transform = 'translateY(-2px)';
-        }}
-        onMouseOut={e => {
-          if (!loading) e.target.style.transform = 'translateY(0)';
-        }}
-      >
-        {loading ? 'Processing Payment...' : (buttonText || `Pay ₦${amount}`)}
-      </button>
-    </div>
+      <style>
+        {`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+    </button>
   );
 };
 
