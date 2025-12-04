@@ -2,36 +2,34 @@ import React, { useState } from 'react';
 
 const PayButton = ({ email, amount, buttonText = 'Pay Now' }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handlePayment = () => {
     if (loading) return;
     
-    // Get the key - VERIFY THIS IS YOUR REAL KEY
-    const publicKey = 'YOUR_REAL_KEY_HERE'; // ⚠️ REPLACE THIS
+    // ⚠️ IMPORTANT: Use YOUR key here
+    const YOUR_PUBLIC_KEY = 'pk_live_YOUR_REAL_KEY_HERE'; // ⚠️ REPLACE THIS
     
-    // Or use environment variable (make sure it's set)
-    // const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    // Or use from environment variable
+    // const YOUR_PUBLIC_KEY = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
     
-    // Validate key
-    if (!publicKey || publicKey.includes('YOUR') || publicKey.includes('d8d97b1f913f518b06d50f9cc21d84bee176a49d')) {
-      setError('❌ You are using MY key! Get YOUR OWN key from Paystack dashboard.');
-      alert('You are using someone else\'s Paystack key. Get your own key at dashboard.paystack.com');
+    // Check if you're still using MY key
+    if (YOUR_PUBLIC_KEY.includes('d8d97b1f913f518b06d50f9cc21d84bee176a49d')) {
+      alert('❌ STOP! You are using MY Paystack key!\n\nGo to: dashboard.paystack.com\nGet YOUR OWN keys from Settings → API & Webhooks\n\nThen update your .env file!');
       return;
     }
     
-    if (!publicKey.startsWith('pk_live_')) {
-      setError('❌ Invalid key format. Must start with "pk_live_"');
+    // Check if using placeholder
+    if (YOUR_PUBLIC_KEY.includes('YOUR_') || !YOUR_PUBLIC_KEY.startsWith('pk_live_')) {
+      alert('❌ Invalid Paystack key!\n\n1. Go to dashboard.paystack.com\n2. Login to YOUR account\n3. Go to Settings → API & Webhooks\n4. Copy YOUR Live Public Key\n5. Paste it in your .env file');
       return;
     }
     
     setLoading(true);
-    setError('');
     
     // Get email
     let customerEmail = email;
     if (!customerEmail) {
-      customerEmail = prompt('Enter email for receipt:');
+      customerEmail = prompt('Enter email for payment receipt:');
       if (!customerEmail) {
         setLoading(false);
         return;
@@ -47,60 +45,59 @@ const PayButton = ({ email, amount, buttonText = 'Pay Now' }) => {
         const paystack = new window.PaystackPop();
         
         paystack.newTransaction({
-          key: publicKey,
+          key: YOUR_PUBLIC_KEY, // This should be YOUR key
           email: customerEmail,
           amount: amount * 100,
-          ref: `PAY_${Date.now()}`,
+          ref: `BOOKSTEM_${Date.now()}`,
           currency: 'NGN',
           onSuccess: (response) => {
-            console.log('✅ Success:', response);
+            console.log('✅ Payment successful!');
             setLoading(false);
-            alert(`Payment successful! Ref: ${response.reference}`);
+            alert(`✅ Payment successful!\nReference: ${response.reference}\nAmount: ₦${amount}`);
           },
           onCancel: () => {
-            console.log('Cancelled');
+            console.log('Payment cancelled');
             setLoading(false);
           }
         });
-      } catch (err) {
-        console.error('Error:', err);
+      } catch (error) {
+        console.error('Payment error:', error);
         setLoading(false);
-        setError('Payment failed: ' + err.message);
+        alert('Payment failed: ' + error.message);
       }
     };
     
     script.onerror = () => {
       setLoading(false);
-      setError('Failed to load Paystack');
+      alert('Failed to load payment system');
     };
     
     document.head.appendChild(script);
   };
 
   return (
-    <div>
-      {error && (
-        <div style={{
-          background: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          color: '#856404',
-          padding: '10px',
-          borderRadius: '5px',
-          marginBottom: '10px'
-        }}>
-          <strong>⚠️ {error}</strong>
-          <div style={{ marginTop: '5px', fontSize: '14px' }}>
-            <a 
-              href="https://dashboard.paystack.com/#/settings/developer" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ color: '#007bff' }}
-            >
-              👉 Get your key from Paystack Dashboard
-            </a>
-          </div>
+    <div style={{ padding: '10px' }}>
+      <div style={{
+        background: '#d1ecf1',
+        border: '1px solid #bee5eb',
+        color: '#0c5460',
+        padding: '10px',
+        borderRadius: '5px',
+        marginBottom: '15px',
+        fontSize: '14px'
+      }}>
+        <strong>⚠️ IMPORTANT:</strong> Make sure you're using <strong>YOUR OWN</strong> Paystack keys!
+        <div style={{ marginTop: '5px' }}>
+          <a 
+            href="https://dashboard.paystack.com/#/settings/developer" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ color: '#007bff', textDecoration: 'none' }}
+          >
+            🔗 Click here to get YOUR keys from Paystack
+          </a>
         </div>
-      )}
+      </div>
       
       <button 
         onClick={handlePayment}
@@ -109,19 +106,23 @@ const PayButton = ({ email, amount, buttonText = 'Pay Now' }) => {
           background: loading ? '#6c757d' : '#28a745',
           color: 'white',
           border: 'none',
-          padding: '12px 24px',
+          padding: '15px 30px',
           fontSize: '16px',
-          borderRadius: '6px',
+          fontWeight: 'bold',
+          borderRadius: '8px',
           cursor: loading ? 'not-allowed' : 'pointer',
-          width: '100%'
+          width: '100%',
+          transition: 'all 0.3s'
+        }}
+        onMouseOver={e => {
+          if (!loading) e.target.style.transform = 'translateY(-2px)';
+        }}
+        onMouseOut={e => {
+          if (!loading) e.target.style.transform = 'translateY(0)';
         }}
       >
-        {loading ? 'Processing...' : buttonText}
+        {loading ? 'Processing Payment...' : (buttonText || `Pay ₦${amount}`)}
       </button>
-      
-      <div style={{ fontSize: '12px', color: '#666', marginTop: '5px', textAlign: 'center' }}>
-        🔒 Secured by Paystack • 💳 Test with card: 4084084084084081
-      </div>
     </div>
   );
 };
