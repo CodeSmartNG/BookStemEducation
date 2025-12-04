@@ -4,7 +4,7 @@ const PayButton = ({ email, amount, metadata, buttonText, onSuccess }) => {
     const script = document.createElement('script');
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
-    
+
     script.onload = () => {
       // @ts-ignore - Paystack is loaded globally
       const handler = PaystackPop.setup({
@@ -21,10 +21,10 @@ const PayButton = ({ email, amount, metadata, buttonText, onSuccess }) => {
           console.log('Payment window closed');
         }
       });
-      
+
       handler.openIframe();
     };
-    
+
     document.head.appendChild(script);
   };
 
@@ -34,3 +34,6 @@ const PayButton = ({ email, amount, metadata, buttonText, onSuccess }) => {
     </button>
   );
 };
+
+// ✅ ADD THIS LINE - DEFAULT EXPORT
+export default PayButton;
