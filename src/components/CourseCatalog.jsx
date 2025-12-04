@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // Add at the top with other imports
-import PayButton from './PayButton'; 
+ import PayButton from './payments/PayButton';  
 // Adjust path as needed
 import { getCourses, getCurrentUser, canAccessLesson, purchaseLesson, getTeacherWhatsAppUrl } from '../utils/storage';
 import Quiz from './Quiz';
