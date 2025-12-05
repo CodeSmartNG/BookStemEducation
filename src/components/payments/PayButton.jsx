@@ -1,279 +1,226 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import Button from '../Button'; // Your existing Button component
 
 const PayButton = ({ 
   email, 
   amount, 
-  metadata = {}, 
-  buttonText, 
+  courseName = 'Course',
+  metadata = {},
+  buttonText = 'Pay Now',
+  disabled = false,
   onSuccess,
-  onClose,
-  disabled = false
+  onError,
+  className = '',
+  fullWidth = true,
+  // New props for your backend
+  backendUrl = 'https://book-stem-education.vercel.app/api/paystack/init',
+  verifyUrl = 'https://book-stem-education.vercel.app/api/paystack/verify',
+  ...props 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Get and validate the public key
-  const getValidatedKey = () => {
-    // Try multiple environment variable names
-    const keys = [
-      import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
-      localStorage.getItem('paystack_public_key')
-    ];
-    
-    let publicKey = keys.find(key => key && key.length > 30);
-    
-    // If no key found, show helpful error
-    if (!publicKey) {
-      setError('Paystack key not configured. Please add VITE_PAYSTACK_PUBLIC_KEY to your .env file.');
-      return null;
-    }
-    
-    // Validate key format
-    const isValidFormat = publicKey.startsWith('pk_live_') || publicKey.startsWith('pk_test_');
-    
-    if (!isValidFormat) {
-      setError('Invalid Paystack key format. Key should start with "pk_live_" or "pk_test_"');
-      return null;
-    }
-    
-    // Check for placeholder/expired keys
-    const invalidPatterns = [
-      'your_paystack',
-      'xxxxxxxx',
-      'test_key',
-      'demo_key',
-      'example'
-    ];
-    
-    if (invalidPatterns.some(pattern => publicKey.includes(pattern))) {
-      setError('Invalid or placeholder Paystack key detected. Please use your actual key from Paystack dashboard.');
-      return null;
-    }
-    
-    return publicKey;
-  };
+  const [loading, setLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('');
 
   const handlePayment = async () => {
-    // Clear previous errors
-    setError('');
+    if (loading || disabled) return;
     
-    if (disabled || isLoading) return;
-    
-    // Validate email
-    let customerEmail = email;
-    if (!customerEmail) {
-      customerEmail = prompt('📧 Enter your email for payment receipt:');
-      if (!customerEmail || !customerEmail.includes('@')) {
-        setError('Valid email is required');
-        return;
-      }
-    }
-    
-    // Validate amount
-    if (!amount || amount <= 0) {
-      setError('Please enter a valid amount');
-      return;
-    }
-    
-    // Get and validate key
-    const publicKey = getValidatedKey();
-    if (!publicKey) {
-      // Error already set by getValidatedKey
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // Load Paystack script
-    const script = document.createElement('script');
-    script.src = "https://js.paystack.co/v2/inline.js";
-    script.async = true;
-    
-    script.onload = () => {
-      try {
-        // Check if Paystack is available
-        if (!window.PaystackPop || typeof window.PaystackPop !== 'function') {
-          throw new Error('Paystack payment system failed to load');
+    setLoading(true);
+    setPaymentStatus('initializing');
+
+    try {
+      // 1. Get customer email if not provided
+      let customerEmail = email;
+      if (!customerEmail) {
+        customerEmail = prompt('📧 Enter your email for payment receipt:');
+        if (!customerEmail || !customerEmail.includes('@')) {
+          alert('A valid email is required for payment');
+          setLoading(false);
+          return;
         }
-        
-        const paystack = new window.PaystackPop();
-        const reference = `EDU_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-        
-        paystack.newTransaction({
-          key: publicKey,
+      }
+
+      // 2. Call YOUR backend to initialize payment
+      setPaymentStatus('contacting_backend');
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: customerEmail,
-          amount: amount * 100,
-          ref: reference,
-          currency: 'NGN',
+          amount: amount,
           metadata: {
             ...metadata,
-            platform: 'Edustem Academy',
-            timestamp: new Date().toISOString()
-          },
-          channels: ['card', 'bank', 'ussd'],
-          
-          onSuccess: (transaction) => {
-            console.log('✅ Payment successful:', transaction);
-            setIsLoading(false);
-            
-            // Store locally
-            localStorage.setItem('last_payment', JSON.stringify({
-              reference: transaction.reference,
-              amount: amount,
-              email: customerEmail,
-              timestamp: new Date().toISOString()
-            }));
-            
-            alert(`✅ Payment Successful!\nAmount: ₦${amount}\nReference: ${transaction.reference}`);
-            
-            if (onSuccess) onSuccess(transaction);
-          },
-          
-          onCancel: () => {
-            console.log('Payment cancelled');
-            setIsLoading(false);
-            if (onClose) onClose();
+            course_name: courseName,
+            timestamp: new Date().toISOString(),
+            platform: 'BookStem Education'
           }
-        });
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!data.status) {
+        throw new Error(data.message || 'Failed to initialize payment');
+      }
+
+      // 3. Redirect to Paystack payment page
+      setPaymentStatus('redirecting_to_paystack');
+      
+      if (data.authorization_url) {
+        // Store payment reference for verification later
+        localStorage.setItem('last_payment_reference', data.reference);
         
-      } catch (error) {
-        console.error('Payment error:', error);
-        setIsLoading(false);
-        setError(`Payment Error: ${error.message || 'Please check your Paystack key'}`);
+        // Open Paystack payment page
+        window.location.href = data.authorization_url;
+        
+        // Optional: Open in new tab
+        // window.open(data.authorization_url, '_blank');
+        
+      } else {
+        throw new Error('No payment URL received');
+      }
+
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      setPaymentStatus('error');
+      
+      // Show user-friendly error messages
+      let errorMessage = 'Payment failed. Please try again.';
+      
+      if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.message.includes('Invalid key')) {
+        errorMessage = 'Payment system configuration error. Please contact support.';
+      }
+      
+      alert(`❌ ${errorMessage}\n\nError: ${error.message}`);
+      
+      // Call error callback if provided
+      if (onError) {
+        onError(error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to verify payment after redirect back
+  const verifyPayment = async (reference) => {
+    try {
+      const response = await fetch(`${verifyUrl}/${reference}`);
+      const data = await response.json();
+      
+      if (data.status && data.data?.status === 'success') {
+        // Payment verified successfully
+        if (onSuccess) {
+          onSuccess(data.data);
+        }
+        
+        // Show success message
+        alert(`✅ Payment Successful!\n\nCourse: ${courseName}\nAmount: ₦${amount}\nReference: ${reference}`);
+        
+        // Clear stored reference
+        localStorage.removeItem('last_payment_reference');
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Verification error:', error);
+      return false;
+    }
+  };
+
+  // Check for payment verification on component mount
+  React.useEffect(() => {
+    const checkPendingPayment = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reference = urlParams.get('reference') || localStorage.getItem('last_payment_reference');
+      
+      if (reference && !loading) {
+        setPaymentStatus('verifying');
+        const verified = await verifyPayment(reference);
+        
+        if (verified) {
+          // Remove reference from URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       }
     };
     
-    script.onerror = () => {
-      setIsLoading(false);
-      setError('Failed to load payment gateway. Check your internet connection.');
-    };
+    checkPendingPayment();
+  }, []);
+
+  // Determine button text based on state
+  const getButtonText = () => {
+    if (loading) {
+      switch(paymentStatus) {
+        case 'initializing': return 'Initializing...';
+        case 'contacting_backend': return 'Contacting payment gateway...';
+        case 'redirecting_to_paystack': return 'Redirecting to secure payment...';
+        case 'verifying': return 'Verifying payment...';
+        default: return 'Processing...';
+      }
+    }
     
-    document.head.appendChild(script);
+    return `${buttonText} - ₦${amount.toLocaleString()}`;
   };
 
-  // Test function to validate key without payment
-  const testKey = () => {
-    const key = getValidatedKey();
-    if (key) {
-      alert(`✅ Key appears valid!\n\nStarts with: ${key.substring(0, 20)}...\n\nTest this key in Paystack dashboard to confirm.`);
-    }
+  // Determine button style based on state
+  const getButtonVariant = () => {
+    if (loading) return 'loading';
+    if (paymentStatus === 'error') return 'error';
+    return 'primary';
   };
 
   return (
-    <div style={{ margin: '10px 0' }}>
-      {error && (
-        <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
-          padding: '10px',
-          borderRadius: '6px',
-          marginBottom: '10px',
-          border: '1px solid #f5c6cb'
-        }}>
-          <strong>⚠️ Error:</strong> {error}
-          
-          <div style={{ marginTop: '8px' }}>
-            <button 
-              onClick={testKey}
-              style={{
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '5px 10px',
-                borderRadius: '4px',
-                marginRight: '8px',
-                fontSize: '12px'
-              }}
-            >
-              Test Key
-            </button>
-            
-            <button 
-              onClick={() => setError('')}
-              style={{
-                background: 'transparent',
-                color: '#721c24',
-                border: '1px solid #721c24',
-                padding: '5px 10px',
-                borderRadius: '4px',
-                fontSize: '12px'
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
+    <div className="pay-button-container">
+      <Button
+        onClick={handlePayment}
+        disabled={disabled || loading}
+        fullWidth={fullWidth}
+        className={`pay-button ${className} ${getButtonVariant()}`}
+        type="button"
+        {...props}
+      >
+        <span className="button-content">
+          {loading && (
+            <span className="loading-spinner">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="4" strokeDasharray="64" strokeDashoffset="48">
+                  <animateTransform 
+                    attributeName="transform" 
+                    type="rotate" 
+                    from="0 12 12" 
+                    to="360 12 12" 
+                    dur="1s" 
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+            </span>
+          )}
+          <span className="button-text">{getButtonText()}</span>
+        </span>
+      </Button>
+      
+      {/* Payment status info */}
+      {paymentStatus && (
+        <div className="payment-status">
+          {paymentStatus === 'error' && (
+            <small style={{ color: '#dc3545' }}>❌ Payment failed. Please try again.</small>
+          )}
+          {paymentStatus === 'verifying' && (
+            <small style={{ color: '#17a2b8' }}>🔍 Verifying your payment...</small>
+          )}
         </div>
       )}
       
-      <button 
-        onClick={handlePayment}
-        disabled={disabled || isLoading || !!error}
-        style={{
-          background: error ? '#dc3545' : 
-                     isLoading ? '#6c757d' : 
-                     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          border: 'none',
-          padding: '12px 24px',
-          fontSize: '16px',
-          fontWeight: '600',
-          borderRadius: '8px',
-          cursor: (disabled || isLoading || !!error) ? 'not-allowed' : 'pointer',
-          opacity: (disabled || !!error) ? 0.6 : 1,
-          width: '100%',
-          position: 'relative'
-        }}
-      >
-        {isLoading ? (
-          <>
-            Processing Payment...
-            <span style={{
-              display: 'inline-block',
-              width: '16px',
-              height: '16px',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderTopColor: 'white',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              marginLeft: '8px'
-            }}></span>
-          </>
-        ) : error ? (
-          'Fix Configuration First'
-        ) : (
-          buttonText || `Pay ₦${amount.toLocaleString()}`
-        )}
-      </button>
-      
-      <div style={{
-        fontSize: '12px',
-        color: '#666',
-        marginTop: '8px',
-        textAlign: 'center'
-      }}>
-        <button 
-          onClick={testKey}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#667eea',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            fontSize: '11px'
-          }}
-        >
-          🔧 Test Payment Configuration
-        </button>
+      {/* Course info */}
+      <div className="course-info">
+        <small>🎓 {courseName}</small>
+        <small>💰 ₦{amount.toLocaleString()}</small>
       </div>
-      
-      <style>
-        {`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 };
