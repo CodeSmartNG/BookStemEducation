@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Button from './Button';
-import Loader from './Loader';
+import Button from '../ui/Button';
+import Loader from '../ui/Loader';
 import './PaymentModal.css';
 
 const PaymentModal = ({ 
