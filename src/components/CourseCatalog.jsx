@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// Add at the top with other imports
- import PayButton from './payments/PayButton';  
-// Adjust path as needed
+import PayButton from './payments/PayButton';
 import { getCourses, getCurrentUser, canAccessLesson, purchaseLesson, getTeacherWhatsAppUrl } from '../utils/storage';
 import Quiz from './Quiz';
 import MultimediaViewer from './MultimediaViewer';
@@ -140,7 +138,7 @@ const CourseCatalog = ({ student, setStudent }) => {
     setCurrentQuiz(null);
   };
 
-  // NEW: Check if student can access lesson
+  // Check if student can access lesson
   const canAccessLessonContent = (courseKey, lessonId) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return false;
@@ -148,7 +146,7 @@ const CourseCatalog = ({ student, setStudent }) => {
     return canAccessLesson(currentUser.id, courseKey, lessonId);
   };
 
-  // NEW: Handle lesson purchase
+  // Handle lesson purchase
   const handlePurchaseLesson = async (courseKey, lessonIndex) => {
     try {
       const currentUser = getCurrentUser();
@@ -185,7 +183,7 @@ const CourseCatalog = ({ student, setStudent }) => {
     }
   };
 
-  // UPDATED: Handle starting a lesson with new payment system
+  // Handle starting a lesson with new payment system
   const handleStartLesson = (courseKey, lessonIndex) => {
     try {
       if (!courses || !courses[courseKey]) return;
@@ -204,7 +202,7 @@ const CourseCatalog = ({ student, setStudent }) => {
         return;
       }
 
-      // NEW: Check if lesson is paid and if student has access
+      // Check if lesson is paid and if student has access
       if (!lesson.isFree && !canAccessLesson(currentUser.id, courseKey, lesson.id)) {
         // Show payment modal for paid lessons without access
         setSelectedLesson({ 
@@ -212,7 +210,7 @@ const CourseCatalog = ({ student, setStudent }) => {
           lessonIndex, 
           lesson: { 
             ...lesson, 
-            title: lesson.title || 'Untitled Lesson', // SAFETY CHECK ADDED
+            title: lesson.title || 'Untitled Lesson',
             courseId: courseKey,
             price: lesson.price || 500,
             teacherId: course.teacherId || 'default_teacher',
@@ -223,14 +221,14 @@ const CourseCatalog = ({ student, setStudent }) => {
         return;
       }
 
-      // OLD: Check if lesson is locked (backward compatibility)
+      // Check if lesson is locked (backward compatibility)
       if (lesson.isLocked && !canAccessLesson(currentUser.id, courseKey, lesson.id)) {
         setSelectedLesson({ 
           courseKey, 
           lessonIndex, 
           lesson: { 
             ...lesson, 
-            title: lesson.title || 'Untitled Lesson', // SAFETY CHECK ADDED
+            title: lesson.title || 'Untitled Lesson',
             courseId: courseKey,
             price: lesson.price || 500,
             teacherId: course.teacherId || 'default_teacher',
@@ -250,7 +248,7 @@ const CourseCatalog = ({ student, setStudent }) => {
     }
   };
 
-  // UPDATED: Handle payment success
+  // Handle payment success
   const handlePaymentSuccess = async (paymentData) => {
     try {
       console.log('Payment successful:', paymentData);
@@ -330,7 +328,7 @@ const CourseCatalog = ({ student, setStudent }) => {
     }
   };
 
-  // NEW: Get teacher WhatsApp URL
+  // Get teacher WhatsApp URL
   const getTeacherContactUrl = (teacherId) => {
     return getTeacherWhatsAppUrl(teacherId);
   };
@@ -378,9 +376,9 @@ const CourseCatalog = ({ student, setStudent }) => {
         </button>
 
         <div className="lesson-header">
-          <h2>{lesson.title || 'Untitled Lesson'}</h2> {/* SAFETY CHECK ADDED */}
+          <h2>{lesson.title || 'Untitled Lesson'}</h2>
           {isCompleted && <span className="completion-badge">Completed ✓</span>}
-          {/* NEW: Show price if paid lesson */}
+          {/* Show price if paid lesson */}
           {!lesson.isFree && (
             <span className={`price-badge ${hasAccess ? 'purchased' : ''}`}>
               {hasAccess ? '✅ Purchased' : `₦${lesson.price}`}
@@ -391,7 +389,7 @@ const CourseCatalog = ({ student, setStudent }) => {
         {course.teacherName && (
           <div className="teacher-info">
             <strong>Instructor:</strong> {course.teacherName}
-            {/* NEW: WhatsApp contact button */}
+            {/* WhatsApp contact button */}
             {course.teacherId && getTeacherContactUrl(course.teacherId) && (
               <a 
                 href={getTeacherContactUrl(course.teacherId)}
@@ -405,7 +403,7 @@ const CourseCatalog = ({ student, setStudent }) => {
           </div>
         )}
 
-        {/* NEW: Access control for lesson content */}
+        {/* Access control for lesson content */}
         {!hasAccess && !lesson.isFree ? (
           <div className="payment-required">
             <div className="payment-prompt">
@@ -515,11 +513,11 @@ const CourseCatalog = ({ student, setStudent }) => {
               <div className="course-header">
                 <span className="course-thumbnail">{course.thumbnail}</span>
                 <div className="course-title-section">
-                  <h3>{course.title || 'Untitled Course'}</h3> {/* SAFETY CHECK ADDED */}
+                  <h3>{course.title || 'Untitled Course'}</h3>
                   {course.teacherName && (
                     <div className="course-teacher">
                       <small>By: {course.teacherName}</small>
-                      {/* NEW: WhatsApp contact for teacher */}
+                      {/* WhatsApp contact for teacher */}
                       {course.teacherId && getTeacherContactUrl(course.teacherId) && (
                         <a 
                           href={getTeacherContactUrl(course.teacherId)}
@@ -543,7 +541,7 @@ const CourseCatalog = ({ student, setStudent }) => {
 
               <p className="course-description">{course.description}</p>
 
-              {/* NEW: Course pricing summary */}
+              {/* Course pricing summary */}
               <div className="course-pricing-summary">
                 <span className="free-lessons">{freeLessonsCount} Free</span>
                 {paidLessonsCount > 0 && (
@@ -592,7 +590,7 @@ const CourseCatalog = ({ student, setStudent }) => {
                         <div className="lesson-info">
                           <div className="lesson-main-info">
                             <span className="lesson-title">
-                              {lesson.title || 'Untitled Lesson'} {/* SAFETY CHECK ADDED */}
+                              {lesson.title || 'Untitled Lesson'}
                               {isPaidLesson && !hasAccess && <span className="lock-icon"> 🔒</span>}
                               {isPaidLesson && (
                                 <span className={`lesson-price ${hasAccess ? 'purchased' : ''}`}>
@@ -640,12 +638,12 @@ const CourseCatalog = ({ student, setStudent }) => {
         })}
       </div>
 
-      {/* UPDATED: PaymentModal with safety checks */}
+      {/* PaymentModal */}
       <PaymentModal
-        isOpen={showPaymentModal && selectedLesson?.lesson} // VALIDATION ADDED
+        isOpen={showPaymentModal && selectedLesson?.lesson}
         onClose={() => {
           setShowPaymentModal(false);
-          setSelectedLesson(null); // Reset on close
+          setSelectedLesson(null);
         }}
         lesson={selectedLesson?.lesson}
         student={student}
