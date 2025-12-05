@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Button from '../ui/Button';
+import Loader from '../ui/Loader';
 const PayButton = ({ 
   email, 
   amount, 
