@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Button from '../Button'; // Your existing Button component
 
 const PayButton = ({ 
   email, 
