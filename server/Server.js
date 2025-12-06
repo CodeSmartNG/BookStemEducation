@@ -10,7 +10,7 @@ const app = express();
 
 // CORS configuration for Render deployment
 const allowedOrigins = [
-  'https://book-stem-education.vercel.app',
+  '  https://bookstemeducation.onrender.com ',
   'http://localhost:3000',
   'http://localhost:5173',
   // Add your Render frontend URL here if you have one
