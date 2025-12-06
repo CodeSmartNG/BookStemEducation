@@ -8,13 +8,25 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration
+// CORS configuration for Render deployment
+const allowedOrigins = [
+  'https://book-stem-education.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  // Add your Render frontend URL here if you have one
+];
+
 app.use(cors({
-  origin: [
-    'https://book-stem-education.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 
@@ -23,18 +35,17 @@ app.use(express.json());
 // ========================
 // CRITICAL: Fix Your Paystack Key Here
 // ========================
-
-// ❌ DELETE THIS HARDCODED KEY - It's causing "Invalid key" error!
-// const PAYSTACK_SECRET = "sk_test_xxxxxxx";
-
-// ✅ USE ENVIRONMENT VARIABLE INSTEAD
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
 // Validate key on startup
 if (!PAYSTACK_SECRET) {
-  console.error('❌ CRITICAL ERROR: PAYSTACK_SECRET_KEY not found in .env file!');
-  console.error('Add this to your .env file:');
-  console.error('PAYSTACK_SECRET_KEY=sk_live_YOUR_NEW_KEY_HERE');
+  console.error('❌ CRITICAL ERROR: PAYSTACK_SECRET_KEY not found in environment variables!');
+  console.error('For Render deployment:');
+  console.error('1. Go to your Render dashboard');
+  console.error('2. Select your service');
+  console.error('3. Go to Environment tab');
+  console.error('4. Add: PAYSTACK_SECRET_KEY=sk_live_YOUR_NEW_KEY_HERE');
+  console.error('Or for test: PAYSTACK_SECRET_KEY=sk_test_YOUR_TEST_KEY');
   process.exit(1);
 }
 
@@ -42,6 +53,24 @@ if (!PAYSTACK_SECRET) {
 const keyPreview = PAYSTACK_SECRET.substring(0, 8) + '...' + PAYSTACK_SECRET.substring(PAYSTACK_SECRET.length - 4);
 console.log('🔑 Paystack Key Loaded:', keyPreview);
 console.log('✅ Backend server starting...');
+
+// ========================
+// RENDER SPECIFIC: Root endpoint
+// ========================
+app.get("/", (req, res) => {
+  res.json({
+    message: "Welcome to BookStem Education Payment API",
+    service: "Online",
+    endpoints: {
+      health: "/health",
+      init_payment: "POST /init-payment",
+      verify_payment: "GET /verify-payment/:reference",
+      test_payment: "POST /test-payment"
+    },
+    documentation: "API for handling Paystack payments for BookStem Education",
+    deploy_platform: "Render"
+  });
+});
 
 // ========================
 // STEP 1: Initialize Payment (UPDATED)
@@ -52,14 +81,14 @@ app.post("/init-payment", async (req, res) => {
 
     // Input validation
     if (!email || !email.includes('@')) {
-      return res.json({ 
+      return res.status(400).json({ 
         status: false, 
         message: "Valid email address is required" 
       });
     }
 
     if (!amount || amount <= 0) {
-      return res.json({ 
+      return res.status(400).json({ 
         status: false, 
         message: "Valid amount is required" 
       });
@@ -76,7 +105,8 @@ app.post("/init-payment", async (req, res) => {
         channels: ["card", "bank", "ussd", "qr"],
         metadata: {
           ...metadata,
-          platform: "BookStem Education"
+          platform: "BookStem Education",
+          backend: "render"
         },
         callback_url: "https://book-stem-education.vercel.app/payment/verify"
       },
@@ -101,17 +131,20 @@ app.post("/init-payment", async (req, res) => {
 
   } catch (error) {
     console.error('❌ Payment initialization error:', error.response?.data || error.message);
-    
+
     // Provide helpful error messages
     let errorMessage = "Payment initialization failed";
-    
+    let statusCode = 500;
+
     if (error.response?.data?.message?.includes('Invalid')) {
-      errorMessage = "Invalid Paystack key. Please check your .env file";
+      errorMessage = "Invalid Paystack key. Please check your environment variables";
+      statusCode = 400;
     } else if (error.response?.status === 401) {
       errorMessage = "Paystack authentication failed. Check your secret key";
+      statusCode = 401;
     }
-    
-    res.json({ 
+
+    res.status(statusCode).json({ 
       status: false, 
       message: errorMessage,
       paystack_error: error.response?.data?.message
@@ -127,7 +160,7 @@ app.get("/verify-payment/:reference", async (req, res) => {
     const { reference } = req.params;
 
     if (!reference) {
-      return res.json({ 
+      return res.status(400).json({ 
         status: false, 
         message: "Payment reference is required" 
       });
@@ -147,7 +180,7 @@ app.get("/verify-payment/:reference", async (req, res) => {
 
     if (verify.data.data.status === "success") {
       console.log('✅ Payment successful:', reference);
-      
+
       // Extract useful data
       const paymentData = {
         reference: verify.data.data.reference,
@@ -180,7 +213,7 @@ app.get("/verify-payment/:reference", async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Verification error:', error.response?.data || error.message);
-    res.json({ 
+    res.status(500).json({ 
       status: false, 
       message: "Payment verification failed",
       error: error.response?.data?.message || error.message
@@ -189,16 +222,18 @@ app.get("/verify-payment/:reference", async (req, res) => {
 });
 
 // ========================
-// NEW: Health Check Endpoint
+// Health Check Endpoint
 // ========================
 app.get("/health", (req, res) => {
   const keyType = PAYSTACK_SECRET.startsWith('sk_live_') ? 'Live' : 
                   PAYSTACK_SECRET.startsWith('sk_test_') ? 'Test' : 'Unknown';
-  
+
   res.json({
     status: "online",
     service: "BookStem Payment Backend",
+    deploy_platform: "Render",
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
     paystack: {
       configured: true,
       key_type: keyType,
@@ -208,10 +243,13 @@ app.get("/health", (req, res) => {
 });
 
 // ========================
-// NEW: Test Payment Endpoint
+// Test Payment Endpoint
 // ========================
 app.post("/test-payment", async (req, res) => {
   try {
+    const keyType = PAYSTACK_SECRET.startsWith('sk_live_') ? 'Live' : 
+                    PAYSTACK_SECRET.startsWith('sk_test_') ? 'Test' : 'Unknown';
+    
     // Test with a small amount (₦100)
     const testRes = await axios.post(
       "https://api.paystack.co/transaction/initialize",
@@ -243,13 +281,30 @@ app.post("/test-payment", async (req, res) => {
       }
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       status: false,
       test: "failed",
       error: error.response?.data?.message || error.message,
       message: "Paystack key might be invalid"
     });
   }
+});
+
+// ========================
+// 404 Handler
+// ========================
+app.use((req, res) => {
+  res.status(404).json({
+    status: false,
+    message: "Endpoint not found",
+    available_endpoints: [
+      "GET /",
+      "GET /health",
+      "POST /init-payment",
+      "GET /verify-payment/:reference",
+      "POST /test-payment"
+    ]
+  });
 });
 
 // ========================
@@ -260,12 +315,15 @@ app.listen(PORT, () => {
   console.log(`
 🚀 ========================================
    BookStem Payment Backend
+   Deployed on: Render
    Port: ${PORT}
+   Environment: ${process.env.NODE_ENV || 'development'}
    Key Type: ${PAYSTACK_SECRET.startsWith('sk_live_') ? 'Live' : 'Test'}
    Key Preview: ${keyPreview}
    ========================================
-✅ Server running!
-🔗 Health Check: http://localhost:${PORT}/health
-🔗 Test Payment: POST http://localhost:${PORT}/test-payment
+✅ Server running on Render!
+🔗 Root URL: https://your-app-name.onrender.com
+🔗 Health Check: /health
+🔗 Test Payment: POST /test-payment
   `);
 });
